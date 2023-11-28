@@ -88,30 +88,30 @@ class Cell {
   }
 
   step() {
-    // this.energy -= 0.1
+    this.energy -= 0.1
     if (this.age >= this.longeviti) {
       this.energy = 0
     }
 
     switch (this.genome[this.CI]) {
-      case 1: //Пустить отросток
+      case 0: //Пустить отросток
         this.grow(this.genome[this.incCI(1)])
         this.energy -= this.genome[this.incCI(1)] / 16
         this.incCI(1)
         break
-      case 8: //фотосинтез от солнца
+      case 5: //фотосинтез от солнца
         this.photosynthesis(this.genome[this.incCI(1)])
         this.incCI(1)
 
         break
-      case 12: //Размножение
+      case 10: //Размножение
         if (
           this.energy >= 32 + this.genome[this.incCI(1)] &&
           this.body.length >= this.genome[this.incCI(1)] / 2
         ) {
           this.reproduction(this.incCI(1))
           this.reproduction(this.incCI(1))
-          // this.energy = this.energy / 2
+          this.energy = this.energy / 2
           this.incCI(1)
         }
         break
@@ -135,7 +135,7 @@ class Cell {
       const x = this.body[this.body.length - 1].x
       const y = this.body[this.body.length - 1].y
       occupiedCells[x][y] = null
-      energyField[x][y] += 5
+      energyField[x][y] += 2
       // energyField[x][y] = -1
       this.body.pop()
 
@@ -259,7 +259,7 @@ class Cell {
 
   photosynthesis(eff) {
     this.testLog.push("photosynthesis " + eff / 8)
-    this.energy += eff / 4
+    this.energy += eff / 8
   }
 }
 
@@ -281,7 +281,7 @@ function setup() {
   energyField = Array(width)
     .fill()
     .map(() => Array(height).fill(10))
-  for (let i = 0; i < 10000; i++) {
+  for (let i = 0; i < 1000; i++) {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
