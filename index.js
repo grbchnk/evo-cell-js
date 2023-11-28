@@ -261,8 +261,8 @@ class Cell {
 let cells = []
 let canvas
 let ctx
-const width = 640
-const height = 480
+const width = 960
+const height = 640
 
 function setup() {
   canvas = document.createElement("canvas")
@@ -276,7 +276,7 @@ function setup() {
   energyField = Array(width)
     .fill()
     .map(() => Array(height).fill(10))
-  for (let i = 0; i < 10000; i++) {
+  for (let i = 0; i < 20000; i++) {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
