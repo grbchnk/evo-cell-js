@@ -6,7 +6,7 @@ const DIRECTION_UP = 0
 const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
-const MUTATION_RATE = 0.001
+const MUTATION_RATE = 0.01
 const MAX_LONGEVITI = 32
 
 class Cell {
@@ -167,16 +167,6 @@ class Cell {
     this.testLog.push("rotate " + this.direction)
   }
 
-  energyExtraction(eff) {
-    const x = this.body[this.body.length - 1].x
-    const y = this.body[this.body.length - 1].y
-    if (energyField[x][y] > 0) {
-      energyField[x][y] -= 1
-      this.energy += eff / 2
-      this.testLog.push("energy extraction " + eff / 2)
-    }
-  }
-
   reproduction(direction) {
     const dir = (this.direction + Math.round((direction + 1) / 8)) % 4
     const newDir = this.setDir(dir)
@@ -187,7 +177,7 @@ class Cell {
       // При репродукции клетки
       let mutation = this.mutateGenome()
 
-      let colorChange = mutation.mutationCount
+      let colorChange = mutation.mutationCount / 10
 
       let colorChannel = Math.floor(Math.random() * 3)
       let newColor = { ...this.color }
@@ -252,9 +242,19 @@ class Cell {
     }
   }
 
+  energyExtraction(eff) {
+    const x = this.body[this.body.length - 1].x
+    const y = this.body[this.body.length - 1].y
+    if (energyField[x][y] > 0) {
+      energyField[x][y] -= 1
+      this.energy += eff / 2
+      this.testLog.push("energy extraction " + eff / 2)
+    }
+  }
+
   photosynthesis(eff) {
-    this.testLog.push("photosynthesis " + eff / 8)
-    this.energy += eff / 8
+    this.testLog.push("photosynthesis " + eff / 4)
+    this.energy += eff / 4
   }
 }
 
