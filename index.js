@@ -6,8 +6,8 @@ const DIRECTION_UP = 0
 const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
-const MUTATION_RATE = 0.001
-const LONGEVITI = 64
+const MUTATION_RATE = 0.01
+const MAX_LONGEVITI = 32
 
 class Cell {
   constructor(
@@ -19,7 +19,8 @@ class Cell {
       r: Math.floor(Math.random() * 255),
       g: Math.floor(Math.random() * 255),
       b: Math.floor(Math.random() * 255),
-    }
+    },
+    longeviti = Math.random() * MAX_LONGEVITI
   ) {
     this.position = { x: x, y: y }
     this.energy = energy
@@ -27,6 +28,7 @@ class Cell {
     this.color = color
     this.age = 0 //жизненный цикл
     this.testLog = [this.age]
+    this.longeviti = longeviti
 
     this.body = [this.position]
     occupiedCells[this.position.x][this.position.y] = this
@@ -86,8 +88,8 @@ class Cell {
   }
 
   step() {
-    this.energy -= 0.1
-    if (this.age >= LONGEVITI) {
+    // this.energy -= 0.1
+    if (this.age >= this.longeviti) {
       this.energy = 0
     }
 
@@ -109,7 +111,7 @@ class Cell {
         ) {
           this.reproduction(this.incCI(1))
           this.reproduction(this.incCI(1))
-          this.energy = this.energy / 2
+          // this.energy = this.energy / 2
           this.incCI(1)
         }
         break
@@ -133,7 +135,8 @@ class Cell {
       const x = this.body[this.body.length - 1].x
       const y = this.body[this.body.length - 1].y
       occupiedCells[x][y] = null
-      energyField[x][y] += 0.5
+      energyField[x][y] += 5
+      // energyField[x][y] = -1
       this.body.pop()
 
       if (!this.body.length) {
@@ -165,7 +168,7 @@ class Cell {
     const x = this.body[this.body.length - 1].x
     const y = this.body[this.body.length - 1].y
     if (energyField[x][y] > 0) {
-      energyField[x][y] -= 1
+      energyField[x][y] -= 0.5
       this.energy += eff / 2
       this.testLog.push("energy extraction " + eff / 2)
     }
@@ -181,7 +184,7 @@ class Cell {
       // При репродукции клетки
       let mutation = this.mutateGenome()
 
-      let colorChange = mutation.mutationCount
+      let colorChange = mutation.mutationCount / 10
 
       let colorChannel = Math.floor(Math.random() * 3)
       let newColor = { ...this.color }
@@ -193,7 +196,20 @@ class Cell {
         newColor.b = Math.max(0, Math.min(255, this.color.b + colorChange))
       }
 
-      let child = new Cell(newDir.x, newDir.y, dir, this.energy / 2, newColor)
+      let newLongeviti = this.longeviti
+
+      if (Math.random() < MUTATION_RATE * 10) {
+        newLongeviti = this.longeviti + Math.random() * 10 - 5
+      }
+
+      let child = new Cell(
+        newDir.x,
+        newDir.y,
+        dir,
+        this.energy / 2,
+        newColor,
+        newLongeviti
+      )
       child.genome = mutation.newGenome
       cells.push(child)
     } else {
@@ -243,7 +259,7 @@ class Cell {
 
   photosynthesis(eff) {
     this.testLog.push("photosynthesis " + eff / 8)
-    this.energy += eff / 8
+    this.energy += eff / 4
   }
 }
 
@@ -265,7 +281,7 @@ function setup() {
   energyField = Array(width)
     .fill()
     .map(() => Array(height).fill(10))
-  for (let i = 0; i < 10000; i++) {
+  for (let i = 0; i < 20000; i++) {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
@@ -286,15 +302,24 @@ const draw = () => {
 let energyCanvas = document.createElement("canvas")
 energyCanvas.width = width
 energyCanvas.height = height
-energyCanvas.style.zIndex = -1
 let energyCtx = energyCanvas.getContext("2d")
 
 function drawEnergyField() {
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       let energy = energyField[x][y]
-      let color = Math.floor((1 - energy / 10) * 255)
-      energyCtx.fillStyle = `rgb(${color}, ${color}, ${color})`
+      let color
+      if (energy === -1) {
+        // Если энергия равна -10, устанавливаем цвет в красный
+        energyCtx.fillStyle = "rgb(255, 0, 0)"
+      } else {
+        // Преобразуем диапазон энергии от 0 до 10 в диапазон от 255 до 0
+        color = Math.floor((energy / 20) * 255)
+        // Используем 255 - color, чтобы инвертировать диапазон (так что 0 становится черным, а 10 - белым)
+        energyCtx.fillStyle = `rgb(${255 - color}, ${255 - color}, ${
+          255 - color
+        })`
+      }
       energyCtx.fillRect(x, y, 1, 1)
     }
   }
