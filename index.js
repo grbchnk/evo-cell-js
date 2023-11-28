@@ -6,8 +6,8 @@ const DIRECTION_UP = 0
 const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
-const MUTATION_RATE = 0.005
-const MAX_LONGEVITI = 16
+const MUTATION_RATE = 0.01
+const MAX_LONGEVITI = 32
 
 class Cell {
   constructor(
@@ -26,7 +26,7 @@ class Cell {
     this.energy = energy
     this.direction = direction // 0: вверх, 1: вправо, 2: вниз, 3: влево
     this.color = color
-    this.age = 0 //жизненный цикл
+    this.age = 0 //возраст
     this.testLog = [this.age]
     this.longeviti = longeviti
 
@@ -97,14 +97,14 @@ class Cell {
     switch (this.genome[this.CI]) {
       case 0:
         this.age += 1
-        this.incCI()
+        this.CI = 0
         break
       case 1: //Пустить отросток
         this.grow(this.genome[this.incCI(1)])
         this.energy -= this.genome[this.incCI(1)] / 16
         this.incCI(1)
         break
-      case 7: //фотосинтез от солнца
+      case 5: //фотосинтез от солнца
         this.photosynthesis(this.genome[this.incCI(1)])
         this.incCI(1)
         break
@@ -117,7 +117,7 @@ class Cell {
           this.reproduction(this.incCI(1))
           this.reproduction(this.incCI(1))
           // this.energy -= energyRep
-          this.energy = this.genome[this.incCI(1)] / 3
+          this.energy = this.genome[this.incCI(1)] / 2
           this.incCI(1)
         }
         break
@@ -153,14 +153,19 @@ class Cell {
 
   kill() {
     const dir = this.setDir(this.direction)
+
     if (occupiedCells[dir.x][dir.y]) {
-      let index = cells.indexOf(occupiedCells[dir.x][dir.y])
-      if (index !== -1) {
-        this.energy += occupiedCells[dir.x][dir.y].energy / 2 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
-        cells.splice(index, 1)
-        this.testLog.push(
-          "kill " + occupiedCells[dir.x][dir.y] === this ? "self" : "alien"
-        )
+      if (occupiedCells[dir.x][dir.y] === this) {
+        this.incCI(6)
+      } else {
+        let index = cells.indexOf(occupiedCells[dir.x][dir.y])
+        if (index !== -1) {
+          this.energy += occupiedCells[dir.x][dir.y].energy / 3 //При убийстве клетки крадёт 1/3 её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
+          cells.splice(index, 1)
+          this.testLog.push(
+            "kill " + occupiedCells[dir.x][dir.y] === this ? "self" : "alien"
+          )
+        }
       }
     }
   }
@@ -168,16 +173,6 @@ class Cell {
   rotate(direction) {
     this.direction = (this.direction + Math.round((direction + 1) / 8)) % 4
     this.testLog.push("rotate " + this.direction)
-  }
-
-  energyExtraction(eff) {
-    const x = this.body[this.body.length - 1].x
-    const y = this.body[this.body.length - 1].y
-    if (energyField[x][y] > 0) {
-      energyField[x][y] -= 0.5
-      this.energy += eff / 8
-      this.testLog.push("energy extraction " + eff / 8)
-    }
   }
 
   reproduction(direction) {
@@ -206,7 +201,7 @@ class Cell {
         newDir.x,
         newDir.y,
         dir,
-        this.energy / 3,
+        this.energy / 2,
         newColor,
         mutation.newLongeviti
       )
@@ -215,10 +210,10 @@ class Cell {
     } else {
       if (occupiedCells[newDir.x][newDir.y] === this) {
         this.testLog.push("reproduction aborted: own cell")
-        this.incCI(5)
+        this.incCI(1)
       } else {
         this.testLog.push("reproduction aborted: alien cell")
-        this.incCI(10)
+        this.incCI(2)
       }
     }
   }
@@ -228,7 +223,7 @@ class Cell {
     let mutationCount = 0
     let newLongeviti = this.longeviti
 
-    if (Math.random() < MUTATION_RATE * 10) {
+    if (Math.random() < MUTATION_RATE) {
       newLongeviti = this.longeviti + Math.random() * 2 - 1
     }
 
@@ -255,16 +250,26 @@ class Cell {
       occupiedCells[newDir.x][newDir.y] = this
     } else {
       if (occupiedCells[newDir.x][newDir.y] === this) {
-        this.incCI(16)
+        this.incCI(10)
       } else {
-        this.incCI(17)
+        this.incCI(15)
       }
     }
   }
 
+  energyExtraction(eff) {
+    const x = this.body[this.body.length - 1].x
+    const y = this.body[this.body.length - 1].y
+    if (energyField[x][y] > 0) {
+      energyField[x][y] -= 0.5
+      this.energy += eff / 4
+      this.testLog.push("energy extraction " + eff / 2)
+    }
+  }
+
   photosynthesis(eff) {
-    this.testLog.push("photosynthesis " + eff / 16)
-    this.energy += eff / 16
+    this.energy += eff / 8
+    this.testLog.push("photosynthesis " + eff / 4)
   }
 }
 
@@ -286,11 +291,11 @@ function setup() {
   energyField = Array(width)
     .fill()
     .map(() => Array(height).fill(10))
-  for (let i = 0; i < 20000; i++) {
+  for (let i = 0; i < 10000; i++) {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
-      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 128))
+      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 64))
     }
   }
 }
