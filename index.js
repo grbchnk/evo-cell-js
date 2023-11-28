@@ -6,8 +6,8 @@ const DIRECTION_UP = 0
 const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
-const MUTATION_RATE = 0.01
-const MAX_LONGEVITI = 32
+const MUTATION_RATE = 0.005
+const MAX_LONGEVITI = 16
 
 class Cell {
   constructor(
@@ -53,6 +53,7 @@ class Cell {
       this.CI = this.CI - 1024
       this.age += 1
       this.testLog.push(this.age + "______________________")
+      this.testLog.push(this.energy)
     }
     return this.CI
   }
@@ -88,30 +89,35 @@ class Cell {
   }
 
   step() {
-    this.energy -= 0.1
+    // this.energy -= 0.1
     if (this.age >= this.longeviti) {
       this.energy = 0
     }
 
     switch (this.genome[this.CI]) {
-      case 0: //Пустить отросток
+      case 0:
+        this.age += 1
+        this.incCI()
+        break
+      case 1: //Пустить отросток
         this.grow(this.genome[this.incCI(1)])
         this.energy -= this.genome[this.incCI(1)] / 16
         this.incCI(1)
         break
-      case 5: //фотосинтез от солнца
+      case 7: //фотосинтез от солнца
         this.photosynthesis(this.genome[this.incCI(1)])
         this.incCI(1)
-
         break
       case 10: //Размножение
+        const energyRep = this.genome[this.incCI(1)]
         if (
-          this.energy >= 32 + this.genome[this.incCI(1)] &&
+          this.energy >= 32 + energyRep &&
           this.body.length >= this.genome[this.incCI(1)] / 2
         ) {
           this.reproduction(this.incCI(1))
           this.reproduction(this.incCI(1))
-          this.energy = this.energy / 2
+          // this.energy -= energyRep
+          this.energy = this.genome[this.incCI(1)] / 3
           this.incCI(1)
         }
         break
@@ -169,8 +175,8 @@ class Cell {
     const y = this.body[this.body.length - 1].y
     if (energyField[x][y] > 0) {
       energyField[x][y] -= 0.5
-      this.energy += eff / 2
-      this.testLog.push("energy extraction " + eff / 2)
+      this.energy += eff / 8
+      this.testLog.push("energy extraction " + eff / 8)
     }
   }
 
@@ -196,19 +202,13 @@ class Cell {
         newColor.b = Math.max(0, Math.min(255, this.color.b + colorChange))
       }
 
-      let newLongeviti = this.longeviti
-
-      if (Math.random() < MUTATION_RATE * 10) {
-        newLongeviti = this.longeviti + Math.random() * 10 - 5
-      }
-
       let child = new Cell(
         newDir.x,
         newDir.y,
         dir,
-        this.energy / 2,
+        this.energy / 3,
         newColor,
-        newLongeviti
+        mutation.newLongeviti
       )
       child.genome = mutation.newGenome
       cells.push(child)
@@ -226,6 +226,11 @@ class Cell {
   mutateGenome() {
     let newGenome = [...this.genome]
     let mutationCount = 0
+    let newLongeviti = this.longeviti
+
+    if (Math.random() < MUTATION_RATE * 10) {
+      newLongeviti = this.longeviti + Math.random() * 2 - 1
+    }
 
     for (let i = 0; i < newGenome.length; i++) {
       if (Math.random() < MUTATION_RATE) {
@@ -235,7 +240,7 @@ class Cell {
       }
     }
 
-    return { newGenome, mutationCount }
+    return { newGenome, mutationCount, newLongeviti }
   }
 
   grow(direction) {
@@ -258,16 +263,16 @@ class Cell {
   }
 
   photosynthesis(eff) {
-    this.testLog.push("photosynthesis " + eff / 8)
-    this.energy += eff / 8
+    this.testLog.push("photosynthesis " + eff / 16)
+    this.energy += eff / 16
   }
 }
 
 let cells = []
 let canvas
 let ctx
-const width = 640
-const height = 480
+const width = 920
+const height = 640
 
 function setup() {
   canvas = document.createElement("canvas")
@@ -281,11 +286,11 @@ function setup() {
   energyField = Array(width)
     .fill()
     .map(() => Array(height).fill(10))
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 20000; i++) {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
-      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 64))
+      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 128))
     }
   }
 }
