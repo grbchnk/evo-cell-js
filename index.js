@@ -6,7 +6,7 @@ const DIRECTION_UP = 0
 const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
-const MUTATION_RATE = 0.001
+const MUTATION_RATE = 0.00001
 const MAX_LONGEVITI = 32
 
 class Cell {
@@ -51,7 +51,9 @@ class Cell {
     if (this.CI >= 1024) {
       this.CI = this.CI - 1024
       this.age += 1
-      this.testLog.push(this.age + "______________________")
+      this.testLog.push(
+        this.age + "_age____________________energy_" + this.energy
+      )
     }
     return this.CI
   }
@@ -87,7 +89,7 @@ class Cell {
   }
 
   step() {
-    this.energy -= this.age / 100
+    this.energy -= this.age / 10
     if (this.age >= MAX_LONGEVITI) {
       this.energy = 0
     }
@@ -266,7 +268,7 @@ class Cell {
 
   photosynthesis(eff) {
     this.testLog.push("photosynthesis " + eff)
-    this.energy += (eff / 32) * this.body.length + 1
+    this.energy += (eff / 32) * (this.body.length + 1)
   }
 }
 
