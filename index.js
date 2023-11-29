@@ -119,10 +119,10 @@ class Cell {
           this.incCI(1)
         }
         break
-      // case 18: //добыча энергии
-      //   this.energyExtraction(this.genome[this.incCI(1)])
-      //   this.incCI(1)
-      //   break
+      case 18: //добыча энергии
+        this.energyExtraction(this.genome[this.incCI(1)])
+        this.incCI(1)
+        break
       case 22: //повернуться
         this.rotate(this.genome[this.incCI(1)])
         this.incCI(1)
@@ -242,15 +242,15 @@ class Cell {
     }
   }
 
-  // energyExtraction(eff) {
-  //   const x = this.body[this.body.length - 1].x
-  //   const y = this.body[this.body.length - 1].y
-  //   if (energyField[x][y] > 0) {
-  //     energyField[x][y] -= 1
-  //     this.energy += eff / 2
-  //     this.testLog.push("energy extraction " + eff / 2)
-  //   }
-  // }
+  energyExtraction(eff) {
+    const x = this.body[this.body.length - 1].x
+    const y = this.body[this.body.length - 1].y
+    if (energyField[x][y] > 0) {
+      energyField[x][y] -= 0.2
+      this.energy += eff / 4
+      this.testLog.push("energy extraction " + eff / 4)
+    }
+  }
 
   photosynthesis(eff) {
     this.testLog.push("photosynthesis " + (eff / 16) * (this.body.length + 1))
