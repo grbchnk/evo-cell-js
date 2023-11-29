@@ -6,7 +6,7 @@ const DIRECTION_UP = 0
 const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
-const MUTATION_RATE = 0.01
+const MUTATION_RATE = 0.001
 const MAX_LONGEVITI = 32
 
 class Cell {
@@ -95,7 +95,7 @@ class Cell {
 
     switch (this.genome[this.CI]) {
       case 0: //Пустить отросток
-        this.age += 1
+        this.energy -= 0.1
         this.incCI()
         break
       case 1: //Пустить отросток
@@ -110,19 +110,19 @@ class Cell {
         break
       case 12: //Размножение
         if (
-          this.energy >= 32 + this.genome[this.incCI(1)] &&
+          this.energy >= 16 + this.genome[this.incCI(1)] &&
           this.body.length >= this.genome[this.incCI(1)] / 2
         ) {
           this.reproduction(this.incCI(1))
           this.reproduction(this.incCI(1))
-          this.energy = this.energy / 2
+          this.energy = this.energy / 3
           this.incCI(1)
         }
         break
-      case 18: //добыча энергии
-        this.energyExtraction(this.genome[this.incCI(1)])
-        this.incCI(1)
-        break
+      // case 18: //добыча энергии
+      //   this.energyExtraction(this.genome[this.incCI(1)])
+      //   this.incCI(1)
+      //   break
       case 22: //повернуться
         this.rotate(this.genome[this.incCI(1)])
         this.incCI(1)
@@ -153,7 +153,7 @@ class Cell {
     if (occupiedCells[dir.x][dir.y]) {
       let index = cells.indexOf(occupiedCells[dir.x][dir.y])
       if (index !== -1) {
-        this.energy += occupiedCells[dir.x][dir.y].energy / 2 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
+        this.energy += occupiedCells[dir.x][dir.y].energy / 3 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
         cells.splice(index, 1)
         this.testLog.push(
           "kill " + occupiedCells[dir.x][dir.y] === this ? "self" : "alien"
@@ -189,7 +189,7 @@ class Cell {
         newColor.b = Math.max(0, Math.min(255, this.color.b + colorChange))
       }
 
-      let child = new Cell(newDir.x, newDir.y, dir, this.energy / 2, newColor)
+      let child = new Cell(newDir.x, newDir.y, dir, this.energy / 3, newColor)
       child.genome = mutation.newGenome
       cells.push(child)
     } else {
@@ -242,19 +242,19 @@ class Cell {
     }
   }
 
-  energyExtraction(eff) {
-    const x = this.body[this.body.length - 1].x
-    const y = this.body[this.body.length - 1].y
-    if (energyField[x][y] > 0) {
-      energyField[x][y] -= 1
-      this.energy += eff / 2
-      this.testLog.push("energy extraction " + eff / 2)
-    }
-  }
+  // energyExtraction(eff) {
+  //   const x = this.body[this.body.length - 1].x
+  //   const y = this.body[this.body.length - 1].y
+  //   if (energyField[x][y] > 0) {
+  //     energyField[x][y] -= 1
+  //     this.energy += eff / 2
+  //     this.testLog.push("energy extraction " + eff / 2)
+  //   }
+  // }
 
   photosynthesis(eff) {
-    this.testLog.push("photosynthesis " + eff / 4)
-    this.energy += eff / 4
+    this.testLog.push("photosynthesis " + (eff / 16) * (this.body.length + 1))
+    this.energy += (eff / 16) * (this.body.length + 1)
   }
 }
 
@@ -276,11 +276,11 @@ function setup() {
   energyField = Array(width)
     .fill()
     .map(() => Array(height).fill(10))
-  for (let i = 0; i < 20000; i++) {
+  for (let i = 0; i < 10000; i++) {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
-      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 64))
+      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 32))
     }
   }
 }
