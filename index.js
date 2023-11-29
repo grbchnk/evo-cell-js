@@ -6,7 +6,7 @@ const DIRECTION_UP = 0
 const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
-const MUTATION_RATE = 0.00001
+const MUTATION_RATE = 0.001
 const MAX_LONGEVITI = 32
 
 class Cell {
@@ -89,7 +89,7 @@ class Cell {
   }
 
   step() {
-    this.energy -= this.age / 10
+    this.energy -= this.age / 100
     if (this.age >= MAX_LONGEVITI) {
       this.energy = 0
     }
@@ -106,15 +106,15 @@ class Cell {
     // }
 
     switch (this.genome[this.CI]) {
-      // case 0:
-      //   this.energy -= this.age / 100
-      //   this.incCI()
-      //   break
-      case 0: //повернуться
+      case 0:
+        this.energy -= 1
+        this.incCI()
+        break
+      case 1: //повернуться
         this.rotate(this.genome[this.incCI(1)])
         this.incCI(1)
         break
-      case 1: //Пустить отросток
+      case 3: //Пустить отросток
         this.grow(this.genome[this.incCI(1)])
 
         this.incCI(1)
@@ -126,22 +126,19 @@ class Cell {
         break
       case 12: //Размножение
         if (
-          this.energy >=
-          32 + this.genome[this.incCI(1)]
-          // &&
-          // this.body.length >= 5 + this.genome[this.incCI(1)] / 4
+          this.energy >= 32 + this.genome[this.incCI(1)] &&
+          this.body.length >= this.genome[this.incCI(1)] / 2
         ) {
+          // this.reproduction(this.incCI(1))
           this.reproduction(this.incCI(1))
-          this.reproduction(this.incCI(1))
-          this.energy = this.energy / 3
+          this.energy = this.energy / 2
           this.incCI(1)
         }
         break
-      // case 18: //добыча энергии
-      //   this.energyExtraction(this.genome[this.incCI(1)])
-      //   this.incCI(1)
-      //   break
-
+      case 18: //добыча энергии
+        this.energyExtraction(this.genome[this.incCI(1)])
+        this.incCI(1)
+        break
       case 30: //Убить
         this.kill(this.genome[this.incCI(1)])
         this.incCI(1)
@@ -156,24 +153,40 @@ class Cell {
       occupiedCells[x][y] = null
       energyField[x][y] += 0.5
       this.body.pop()
+    }
 
-      if (!this.body.length) {
-        this.removeSelf()
-      }
+    if (!this.body.length) {
+      this.removeSelf()
     }
   }
 
   kill() {
     const dir = this.setDir(this.direction)
     if (occupiedCells[dir.x][dir.y]) {
-      let index = cells.indexOf(occupiedCells[dir.x][dir.y])
-      if (index !== -1) {
-        this.energy += occupiedCells[dir.x][dir.y].energy / 2 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
-        cells.splice(index, 1)
-        this.testLog.push(
-          "kill " + occupiedCells[dir.x][dir.y] === this ? "self" : "alien"
-        )
-      }
+      // const enemyBody = occupiedCells[dir.x][dir.y].body
+      occupiedCells[dir.x][dir.y].energy = 0
+      // occupiedCells[dir.x][dir.y].removeSelf()
+      // for (let i = enemyBody.length - 1; i >= 0; i--) {
+      //   // console.log(enemyBody.length, i)
+      //   const x = enemyBody[i].x
+      //   const y = enemyBody[i].y
+      //   occupiedCells[x][y] = null
+      // }
+
+      // let index = cells.indexOf(occupiedCells[dir.x][dir.y])
+      // if (index !== -1) {
+      //   this.energy += occupiedCells[dir.x][dir.y].energy / 2 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
+      //   cells.splice(index, 1)
+      // }
+
+      this.testLog.push(
+        "kill " + occupiedCells[dir.x][dir.y] === this ? "self" : "alien"
+      )
+      // let index = cells.indexOf(occupiedCells[dir.x][dir.y])
+      // if (index !== -1) {
+      //   this.energy += occupiedCells[dir.x][dir.y].energy / 2 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
+      //   cells.splice(index, 1)
+      // }
     }
   }
 
@@ -204,16 +217,16 @@ class Cell {
         newColor.b = Math.max(0, Math.min(255, this.color.b + colorChange))
       }
 
-      let child = new Cell(newDir.x, newDir.y, dir, this.energy / 3, newColor)
+      let child = new Cell(newDir.x, newDir.y, dir, this.energy / 2, newColor)
       child.genome = mutation.newGenome
       cells.push(child)
     } else {
       if (occupiedCells[newDir.x][newDir.y] === this) {
         this.testLog.push("reproduction aborted: own cell")
-        this.incCI(5)
+        this.incCI(this.incCI(1))
       } else {
         this.testLog.push("reproduction aborted: alien cell")
-        this.incCI(10)
+        this.incCI(this.incCI(2))
       }
     }
   }
@@ -224,7 +237,7 @@ class Cell {
     let newLongeviti = this.longeviti
 
     if (Math.random() < MUTATION_RATE) {
-      newLongeviti += Math.random() * 0.2 - 0.1
+      newLongeviti += Math.random() * 0.5 - 0.5
     }
 
     for (let i = 0; i < newGenome.length; i++) {
@@ -256,19 +269,19 @@ class Cell {
     }
   }
 
-  // energyExtraction(eff) {
-  //   const x = this.body[this.body.length - 1].x
-  //   const y = this.body[this.body.length - 1].y
-  //   if (energyField[x][y] > 0) {
-  //     energyField[x][y] -= 0.5
-  //     this.energy += eff / 2
-  //     this.testLog.push("energy extraction " + eff / 2)
-  //   }
-  // }
+  energyExtraction(eff) {
+    const x = this.body[this.body.length - 1].x
+    const y = this.body[this.body.length - 1].y
+    if (energyField[x][y] > 0) {
+      energyField[x][y] -= 0.5
+      this.energy += eff / 32
+      this.testLog.push("energy extraction " + eff / 32)
+    }
+  }
 
   photosynthesis(eff) {
     this.testLog.push("photosynthesis " + eff)
-    this.energy += (eff / 32) * (this.body.length + 1)
+    this.energy += (eff / 320) * (this.body.length + 1)
   }
 }
 
@@ -282,6 +295,9 @@ function setup() {
   canvas = document.createElement("canvas")
   canvas.width = width
   canvas.height = height
+  canvas.style.position = "absolute"
+  canvas.style.left = 0
+  canvas.style.zIndex = -1
   document.body.appendChild(canvas)
   ctx = canvas.getContext("2d")
   occupiedCells = Array(width)
@@ -294,7 +310,7 @@ function setup() {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
-      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 64))
+      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 32))
     }
   }
 }
@@ -302,7 +318,7 @@ function setup() {
 let displayStep = 0
 
 const draw = () => {
-  if (displayStep >= 10) {
+  if (displayStep >= 20) {
     ctx.fillStyle = "black"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     cells.forEach((cell) => {
@@ -321,6 +337,8 @@ const draw = () => {
 let energyCanvas = document.createElement("canvas")
 energyCanvas.width = width
 energyCanvas.height = height
+energyCanvas.style.position = "absolute"
+energyCanvas.style.left = 0
 energyCanvas.style.zIndex = -1
 let energyCtx = energyCanvas.getContext("2d")
 
@@ -335,27 +353,63 @@ function drawEnergyField() {
   }
 }
 
-function saveEnergyField() {
-  drawEnergyField()
-  let dataUrl = energyCanvas.toDataURL("image/png")
-  let a = document.createElement("a")
-  a.href = dataUrl
-  a.download = "energyField.png"
-  a.click()
+let occupiedCanvas = document.createElement("canvas")
+occupiedCanvas.width = width
+occupiedCanvas.height = height
+occupiedCanvas.style.position = "absolute"
+occupiedCanvas.style.left = 0
+occupiedCanvas.style.zIndex = -1
+let occupiedCtx = occupiedCanvas.getContext("2d")
+
+function drawOccupiedField() {
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      let color = occupiedCells[x][y] ? "red" : "blue"
+      occupiedCtx.fillStyle = color
+      occupiedCtx.fillRect(x, y, 1, 1)
+    }
+  }
 }
+
+// function saveEnergyField() {
+//   drawEnergyField()
+//   let dataUrl = energyCanvas.toDataURL("image/png")
+//   let a = document.createElement("a")
+//   a.href = dataUrl
+//   a.download = "energyField.png"
+//   a.click()
+// }
 
 // let saveButton = document.createElement("button")
 // saveButton.textContent = "Energy Field"
 // saveButton.addEventListener("click", saveEnergyField)
 // document.body.appendChild(saveButton)
 
-let showButton = document.createElement("button")
-showButton.textContent = "Show Energy Field"
-showButton.addEventListener("click", () => {
-  drawEnergyField()
-  document.body.appendChild(energyCanvas)
+let showEnergyCanvasButton = document.createElement("button")
+showEnergyCanvasButton.textContent = "Energy Field"
+showEnergyCanvasButton.addEventListener("click", () => {
+  if (document.body.contains(energyCanvas)) {
+    document.body.removeChild(energyCanvas)
+  } else {
+    drawEnergyField()
+    document.body.appendChild(energyCanvas)
+  }
 })
-document.body.appendChild(showButton)
+
+let showOccupiedCanvasButton = document.createElement("button")
+showOccupiedCanvasButton.textContent = "Occupied Field"
+showOccupiedCanvasButton.addEventListener("click", () => {
+  if (document.body.contains(occupiedCanvas)) {
+    document.body.removeChild(occupiedCanvas)
+  } else {
+    drawOccupiedField()
+    document.body.appendChild(occupiedCanvas)
+  }
+})
+
+document.body.appendChild(showEnergyCanvasButton)
+document.body.appendChild(showOccupiedCanvasButton)
 
 setup()
+
 setInterval(draw, 1)
