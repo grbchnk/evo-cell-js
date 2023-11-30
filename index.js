@@ -7,7 +7,8 @@ const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
 const MUTATION_RATE = 0.001
-const MAX_LONGEVITI = 32
+const MAX_LONGEVITY = 8
+let PHOTOSYNTHESIS_FACTOR = 512
 
 class Cell {
   constructor(
@@ -20,7 +21,7 @@ class Cell {
       g: Math.floor(Math.random() * 255),
       b: Math.floor(Math.random() * 255),
     },
-    longeviti = Math.random() * MAX_LONGEVITI
+    longevity = Math.random() * MAX_LONGEVITY
   ) {
     this.position = { x: x, y: y }
     this.energy = energy
@@ -28,8 +29,9 @@ class Cell {
     this.color = color
     this.age = 0 //жизненный цикл
     this.testLog = [this.age]
-    this.longeviti = longeviti
+    this.longevity = longevity
     this.body = [this.position]
+    this.zeroCount = 0
     occupiedCells[this.position.x][this.position.y] = this
 
     // Создаем геном
@@ -90,7 +92,7 @@ class Cell {
 
   step() {
     this.energy -= this.age / 100
-    if (this.age >= MAX_LONGEVITI) {
+    if (this.age >= MAX_LONGEVITY) {
       this.energy = 0
     }
     // if (
@@ -107,8 +109,13 @@ class Cell {
 
     switch (this.genome[this.CI]) {
       case 0:
-        this.energy -= 0.5
-        this.incCI()
+        if (this.zeroCount > 32) {
+          this.incCI(this.genome[this.incCI(1)])
+          this.zeroCount = 0
+        } else {
+          this.zeroCount += 1
+          this.incCI()
+        }
         break
       case 1: //повернуться
         this.rotate(this.genome[this.incCI(1)])
@@ -154,7 +161,7 @@ class Cell {
       const x = this.body[this.body.length - 1].x
       const y = this.body[this.body.length - 1].y
       occupiedCells[x][y] = null
-      energyField[x][y] += 0.1
+      // energyField[x][y] += 0.1
       this.body.pop()
     }
 
@@ -208,7 +215,7 @@ class Cell {
       // При репродукции клетки
       let mutation = this.mutateGenome()
 
-      let colorChange = mutation.mutationCount / 5
+      let colorChange = mutation.mutationCount / 3
 
       let colorChannel = Math.floor(Math.random() * 3)
       let newColor = { ...this.color }
@@ -220,7 +227,14 @@ class Cell {
         newColor.b = Math.max(0, Math.min(255, this.color.b + colorChange))
       }
 
-      let child = new Cell(newDir.x, newDir.y, dir, this.energy / 2, newColor)
+      let child = new Cell(
+        newDir.x,
+        newDir.y,
+        dir,
+        this.energy / 2,
+        newColor,
+        mutation.newLongeviti
+      )
       child.genome = mutation.newGenome
       cells.push(child)
     } else {
@@ -237,10 +251,10 @@ class Cell {
   mutateGenome() {
     let newGenome = [...this.genome]
     let mutationCount = 0
-    let newLongeviti = this.longeviti
+    let newLongeviti = this.longevity
 
     if (Math.random() < MUTATION_RATE) {
-      newLongeviti += Math.random() * 0.5 - 0.5
+      newLongeviti += Math.random() * 2 - 1
     }
 
     for (let i = 0; i < newGenome.length; i++) {
@@ -276,7 +290,7 @@ class Cell {
     const x = this.body[this.body.length - 1].x
     const y = this.body[this.body.length - 1].y
     if (energyField[x][y] > 0) {
-      energyField[x][y] -= 0.2
+      energyField[x][y] -= 0.5
       this.energy += eff / 8
       this.testLog.push("energy extraction " + eff / 8)
     }
@@ -284,7 +298,7 @@ class Cell {
 
   photosynthesis(eff) {
     this.testLog.push("photosynthesis " + (eff / 1024) * (this.body.length + 1))
-    this.energy += (eff / 1024) * (this.body.length + 1)
+    this.energy += (eff / PHOTOSYNTHESIS_FACTOR) * (this.body.length + 1)
   }
 }
 
@@ -353,7 +367,7 @@ const draw = () => {
     cells.forEach((cell) => {
       totalEnergy += cell.energy
       totalAge += cell.age
-      totalLongevity += cell.longeviti
+      totalLongevity += cell.longevity
       totalBodyLength += cell.body.length
     })
     avgEnergy.push(totalEnergy / cells.length)
@@ -396,7 +410,7 @@ let occupiedCtx = occupiedCanvas.getContext("2d")
 function drawOccupiedField() {
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      let color = occupiedCells[x][y] ? "red" : "white"
+      let color = occupiedCells[x][y] ? "red" : "black"
       occupiedCtx.fillStyle = color
       occupiedCtx.fillRect(x, y, 1, 1)
     }
