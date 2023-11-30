@@ -7,7 +7,7 @@ const DIRECTION_RIGHT = 1
 const DIRECTION_DOWN = 2
 const DIRECTION_LEFT = 3
 const MUTATION_RATE = 0.001
-const MAX_LONGEVITY = 8
+const MAX_LONGEVITY = 32
 let PHOTOSYNTHESIS_FACTOR = 512
 
 class Cell {
@@ -16,12 +16,12 @@ class Cell {
     y,
     direction,
     energy,
+    longevity,
     color = {
       r: Math.floor(Math.random() * 255),
       g: Math.floor(Math.random() * 255),
       b: Math.floor(Math.random() * 255),
-    },
-    longevity = Math.random() * MAX_LONGEVITY
+    }
   ) {
     this.position = { x: x, y: y }
     this.energy = energy
@@ -173,30 +173,13 @@ class Cell {
   kill() {
     const dir = this.setDir(this.direction)
     if (occupiedCells[dir.x][dir.y]) {
-      // const enemyBody = occupiedCells[dir.x][dir.y].body
-      occupiedCells[dir.x][dir.y].energy = 0
-      // occupiedCells[dir.x][dir.y].removeSelf()
-      // for (let i = enemyBody.length - 1; i >= 0; i--) {
-      //   // console.log(enemyBody.length, i)
-      //   const x = enemyBody[i].x
-      //   const y = enemyBody[i].y
-      //   occupiedCells[x][y] = null
-      // }
-
-      // let index = cells.indexOf(occupiedCells[dir.x][dir.y])
-      // if (index !== -1) {
-      //   this.energy += occupiedCells[dir.x][dir.y].energy / 2 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
-      //   cells.splice(index, 1)
-      // }
-
-      this.testLog.push(
-        "kill " + occupiedCells[dir.x][dir.y] === this ? "self" : "alien"
-      )
-      // let index = cells.indexOf(occupiedCells[dir.x][dir.y])
-      // if (index !== -1) {
-      //   this.energy += occupiedCells[dir.x][dir.y].energy / 2 //При убийстве клетки крадёт половину её энергии. Если убивает себя, то тоже крадёт, но это ему не поможет.
-      //   cells.splice(index, 1)
-      // }
+      if (occupiedCells[dir.x][dir.y] === this) {
+        occupiedCells[dir.x][dir.y].energy = 0
+        this.incCI(10)
+      } else {
+        this.energy += occupiedCells[dir.x][dir.y].energy / 2
+        occupiedCells[dir.x][dir.y].energy = 0
+      }
     }
   }
 
@@ -232,8 +215,8 @@ class Cell {
         newDir.y,
         dir,
         this.energy / 2,
-        newColor,
-        mutation.newLongeviti
+        mutation.newLongeviti,
+        newColor
       )
       child.genome = mutation.newGenome
       cells.push(child)
@@ -297,7 +280,9 @@ class Cell {
   }
 
   photosynthesis(eff) {
-    this.testLog.push("photosynthesis " + (eff / 1024) * (this.body.length + 1))
+    this.testLog.push(
+      "photosynthesis " + (eff / PHOTOSYNTHESIS_FACTOR) * (this.body.length + 1)
+    )
     this.energy += (eff / PHOTOSYNTHESIS_FACTOR) * (this.body.length + 1)
   }
 }
@@ -327,7 +312,15 @@ function setup() {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
-      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 64))
+      cells.push(
+        new Cell(
+          x,
+          y,
+          Math.floor(Math.random() * 4),
+          64,
+          Math.random() * MAX_LONGEVITY
+        )
+      )
     }
   }
 }
