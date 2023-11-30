@@ -107,7 +107,7 @@ class Cell {
 
     switch (this.genome[this.CI]) {
       case 0:
-        this.energy -= 1
+        this.energy -= 0.5
         this.incCI()
         break
       case 1: //повернуться
@@ -116,23 +116,26 @@ class Cell {
         break
       case 3: //Пустить отросток
         this.grow(this.genome[this.incCI(1)])
-
         this.incCI(1)
         break
       case 8: //фотосинтез от солнца
         this.photosynthesis(this.genome[this.incCI(1)])
         this.incCI(1)
-
         break
       case 12: //Размножение
         if (
           this.energy >= 32 + this.genome[this.incCI(1)] &&
-          this.body.length >= this.genome[this.incCI(1)] / 2
+          this.body.length >= this.genome[this.incCI(1)]
         ) {
-          // this.reproduction(this.incCI(1))
-          this.reproduction(this.incCI(1))
-          this.energy = this.energy / 2
-          this.incCI(1)
+          if (this.genome[this.incCI(1)] > 16) {
+            this.reproduction(this.incCI(1))
+            this.reproduction(this.incCI(1))
+            this.energy = this.energy / 2
+          } else {
+            this.reproduction(this.incCI(1))
+            this.energy = this.energy / 2
+            this.incCI(1)
+          }
         }
         break
       case 18: //добыча энергии
@@ -151,7 +154,7 @@ class Cell {
       const x = this.body[this.body.length - 1].x
       const y = this.body[this.body.length - 1].y
       occupiedCells[x][y] = null
-      energyField[x][y] += 0.5
+      energyField[x][y] += 0.1
       this.body.pop()
     }
 
@@ -205,7 +208,7 @@ class Cell {
       // При репродукции клетки
       let mutation = this.mutateGenome()
 
-      let colorChange = mutation.mutationCount
+      let colorChange = mutation.mutationCount / 5
 
       let colorChannel = Math.floor(Math.random() * 3)
       let newColor = { ...this.color }
@@ -273,15 +276,15 @@ class Cell {
     const x = this.body[this.body.length - 1].x
     const y = this.body[this.body.length - 1].y
     if (energyField[x][y] > 0) {
-      energyField[x][y] -= 0.5
-      this.energy += eff / 32
-      this.testLog.push("energy extraction " + eff / 32)
+      energyField[x][y] -= 0.2
+      this.energy += eff / 8
+      this.testLog.push("energy extraction " + eff / 8)
     }
   }
 
   photosynthesis(eff) {
-    this.testLog.push("photosynthesis " + eff)
-    this.energy += (eff / 320) * (this.body.length + 1)
+    this.testLog.push("photosynthesis " + (eff / 1024) * (this.body.length + 1))
+    this.energy += (eff / 1024) * (this.body.length + 1)
   }
 }
 
@@ -310,12 +313,19 @@ function setup() {
     const x = Math.floor(Math.random() * width)
     const y = Math.floor(Math.random() * height)
     if (!occupiedCells[x][y]) {
-      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 32))
+      cells.push(new Cell(x, y, Math.floor(Math.random() * 4), 64))
     }
   }
 }
 
 let displayStep = 0
+let stepCount = 0
+
+let avgEnergy = []
+let avgAge = []
+let avgLongevity = []
+let avgBodyLength = []
+let cellCounts = []
 
 const draw = () => {
   if (displayStep >= 20) {
@@ -332,6 +342,28 @@ const draw = () => {
     })
     displayStep += 1
   }
+
+  // На каждом 1000-м шаге вычисляем средние значения и количество клеток
+  if (stepCount % 1000 === 0) {
+    let totalEnergy = 0
+    let totalAge = 0
+    let totalLongevity = 0
+    let totalBodyLength = 0
+
+    cells.forEach((cell) => {
+      totalEnergy += cell.energy
+      totalAge += cell.age
+      totalLongevity += cell.longeviti
+      totalBodyLength += cell.body.length
+    })
+    avgEnergy.push(totalEnergy / cells.length)
+    avgAge.push(totalAge / cells.length)
+    avgLongevity.push(totalLongevity / cells.length)
+    avgBodyLength.push(totalBodyLength / cells.length)
+    cellCounts.push(cells.length)
+  }
+
+  stepCount += 1
 }
 
 let energyCanvas = document.createElement("canvas")
@@ -364,7 +396,7 @@ let occupiedCtx = occupiedCanvas.getContext("2d")
 function drawOccupiedField() {
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      let color = occupiedCells[x][y] ? "red" : "blue"
+      let color = occupiedCells[x][y] ? "red" : "white"
       occupiedCtx.fillStyle = color
       occupiedCtx.fillRect(x, y, 1, 1)
     }
